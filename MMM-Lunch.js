@@ -9,7 +9,7 @@
 
 Module.register("MMM-Lunch", {
 	defaults: {
-		updateInterval: 60000,
+		updateInterval: (1800 * 1000),
 		retryDelay: 5000
 	},
 
@@ -97,7 +97,7 @@ Module.register("MMM-Lunch", {
 					let row = document.createElement("tr");
 					let dateCell = document.createElement("td");
 					let meatCell = document.createElement("td");
-					let meats = ent[1]["MEAT/MEAT ALTERNATIVES"].filter(obj => obj["MenuItemDescription"] !== "PB&J Lunch ").map(m=> m["MenuItemDescription"]).join(", ");
+					let meats = ent[1]["MEAT/MEAT ALTERNATIVES"] ? ent[1]["MEAT/MEAT ALTERNATIVES"].filter(obj => obj["MenuItemDescription"] !== "PB&J Lunch ").map(m=> m["MenuItemDescription"]).join(", ") : "Lunch not published";
 					let dateSpanWrap = document.createElement("div");
 					let mealSpanWrap = document.createElement("div");
 
