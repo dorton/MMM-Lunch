@@ -6,6 +6,8 @@
  */
 
 var NodeHelper = require("node_helper");
+var request = require("request");
+var moment = require("moment");
 
 module.exports = NodeHelper.create({
 
@@ -18,30 +20,36 @@ module.exports = NodeHelper.create({
 	 * argument payload mixed - The payload of the notification.
 	 */
 	socketNotificationReceived: function(notification, payload) {
-		if (notification === "MMM-Lunch-NOTIFICATION_TEST") {
-			console.log("Working notification system. Notification:", notification, "payload: ", payload);
-			// Send notification
-			this.sendNotificationTest(this.anotherFunction()); //Is possible send objects :)
+		switch(notification) {
+		  case "SET_CONFIG":
+		  this.config = payload;
+		  console.log("this.config: ", this.config);
+		  this.sendSocketNotification("CONFIG_SET");
+		  break;
+
+		  case "FETCH_DATA":
+		  this.fetchData();
+		  break;
 		}
 	},
 
-	// Example function send notification test
-	sendNotificationTest: function(payload) {
-		this.sendSocketNotification("MMM-Lunch-NOTIFICATION_TEST", payload);
-	},
+	fetchData: function() {
 
-	// this you can create extra routes for your module
-	extraRoutes: function() {
-		var self = this;
-		this.expressApp.get("/MMM-Lunch/extra_route", function(req, res) {
-			// call another function
-			values = self.anotherFunction();
-			res.send(values);
+		let schoolId = this.config.schoolId || "4e1c1aa8-8fbe-49b7-af51-61a61f0bc651";
+		let monday = this.config.monday || "02/03/2020";
+		let mealType = this.config.mealType || "Lunch";
+		let url =
+        `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${schoolId}&ServingDate=${monday}&ServingLine=Line%201&MealType=${mealType}`;
+
+		request({
+			url: url,
+			method: "GET"
+		}, (error, response, body) => {
+		  if (error) {
+				this.sendSocketNotification("NETWORK_ERROR", error);
+		  } else {
+				this.sendSocketNotification("DATA_AVAILABLE", response);
+		  }
 		});
-	},
-
-	// Test another function
-	anotherFunction: function() {
-		return {date: new Date()};
 	}
 });

@@ -24,10 +24,14 @@ Module.register("MMM-Lunch", {
 		this.loaded = false;
 
 		// Schedule update timer.
-		this.getData();
-		setInterval(function() {
-			self.updateDom();
-		}, this.config.updateInterval);
+		if (this.config) {
+			this.setConfig();
+			setInterval(function() {
+				self.updateDom();
+			}, this.config.updateInterval);
+		} else {
+			this.getData();
+		}
 	},
 
 	/*
@@ -36,42 +40,14 @@ Module.register("MMM-Lunch", {
 	 * get a URL request
 	 *
 	 */
+
+	setConfig: function() {
+		this.sendSocketNotification("SET_CONFIG", this.config);
+	},
 	getData: function() {
-		var self = this;
-
-		var urlApi = "http://localhost:8888/lunch";
-		var retry = true;
-
-		var dataRequest = new XMLHttpRequest();
-		dataRequest.open("GET", urlApi, true);
-		dataRequest.onreadystatechange = function() {
-			console.log("readyState: ", this.readyState);
-			if (this.readyState === 4) {
-				console.log("status: ", this.status);
-				if (this.status === 200) {
-					console.log("this.response: ", Object.entries(JSON.parse(this.response)));
-					self.processData(JSON.parse(this.response));
-				} else if (this.status === 401) {
-					self.updateDom(self.config.animationSpeed);
-					Log.error(self.name, this.status);
-					retry = false;
-				} else {
-					Log.error(self.name, "Could not load data.");
-				}
-				if (retry) {
-					self.scheduleUpdate((self.loaded) ? -1 : self.config.retryDelay);
-				}
-			}
-		};
-		dataRequest.send();
+		this.sendSocketNotification("FETCH_DATA");
 	},
 
-	/* scheduleUpdate()
-	 * Schedule next update.
-	 *
-	 * argument delay number - Milliseconds before next update.
-	 *  If empty, this.config.updateInterval is used.
-	 */
 	scheduleUpdate: function(delay) {
 		var nextLoad = this.config.updateInterval;
 		if (typeof delay !== "undefined" && delay >= 0) {
@@ -165,7 +141,7 @@ Module.register("MMM-Lunch", {
 	processData: function(data) {
 		var self = this;
 		this.dataRequest = data;
-		if (this.loaded === false) { self.updateDom(self.config.animationSpeed) ; }
+		if (this.loaded === false) { self.updateDom() ; }
 		this.loaded = true;
 
 		// the data if load
@@ -174,11 +150,24 @@ Module.register("MMM-Lunch", {
 	},
 
 	// socketNotificationReceived from helper
-	socketNotificationReceived: function (notification, payload) {
-		if(notification === "MMM-Lunch-NOTIFICATION_TEST") {
-			// set dataNotification
-			this.dataNotification = payload;
-			this.updateDom();
+	socketNotificationReceived: function(notification, payload) {
+		switch(notification) {
+		case "CONFIG_SET":
+			this.getData();
+		case "NETWORK_ERROR":
+			// this is likely due to connection issue - we should retry in a bit
+			Log.error("Error reaching Lunch: ", payload);
+			// this.scheduleUpdate();
+			break;
+
+		case "DATA_AVAILABLE":
+			// code 200 means all went well - we have weather data
+			if (payload.statusCode == 200) {
+				this.processData(JSON.parse(payload.body));
+			} else {
+				Log.error("Error: ", payload);
+			}
+			break;
 		}
 	},
 });
