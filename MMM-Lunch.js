@@ -9,159 +9,137 @@
 
 Module.register("MMM-Lunch", {
 	defaults: {
-		updateInterval: (1800 * 1000),
-		retryDelay: 5000
+		updateInterval: 1800 * 1000,
+		retryDelay: 5000,
+		schoolId: null, // REQUIRED
+		mealType: "Lunch",
+		moday: moment()
+			.day("Monday")
+			.format("L")
 	},
-
-	requiresVersion: "2.1.0", // Required version of MagicMirror
 
 	start: function() {
+		Log.log("Starting module: " + this.name);
 		var self = this;
-		var dataRequest = null;
-		var dataNotification = null;
-
-		//Flag for check if module is loaded
 		this.loaded = false;
 
-		// Schedule update timer.
-		if (this.config) {
-			this.setConfig();
-			setInterval(function() {
-				self.updateDom();
-			}, this.config.updateInterval);
-		} else {
-			this.getData();
-		}
+		this.setHelperConfig();
+		setInterval(function() {
+			self.updateDom();
+		}, this.config.updateInterval);
 	},
 
-	/*
-	 * getData
-	 * function example return data and show it in the module wrapper
-	 * get a URL request
-	 *
-	 */
-
-	setConfig: function() {
+	setHelperConfig: function() {
 		this.sendSocketNotification("SET_CONFIG", this.config);
 	},
 	getData: function() {
-		this.sendSocketNotification("FETCH_DATA");
+		if (this.config.schoolId) {
+			this.sendSocketNotification("FETCH_DATA");
+		}
 	},
 
 	scheduleUpdate: function(delay) {
-		var nextLoad = this.config.updateInterval;
+		var nextLoad = this.data.config.updateInterval;
 		if (typeof delay !== "undefined" && delay >= 0) {
 			nextLoad = delay;
 		}
-		nextLoad = nextLoad ;
+		nextLoad = nextLoad;
 		var self = this;
 		setTimeout(function() {
 			self.getData();
 		}, nextLoad);
 	},
 
-	getDom: function() {
-		var self = this;
+	getHeader: function() {
+		return this.data.header.split(" ").join(` ${this.config.mealType} `);
+	},
 
-		// create element wrapper for show into the module
-		var wrapper = document.createElement("div");
-		// If this.dataRequest is not empty
+	getFoodItems(ent) {
+		let main = this.config.mealType.toLowerCase() === "breakfast" ? "GRAINS" : "MEAT/MEAT ALTERNATIVES";
+		return ent[1][main]
+			? ent[1][main]
+				.filter(obj => obj["MenuItemDescription"] !== "PB&J Lunch ")
+				.map(m => m["MenuItemDescription"])
+				.join(", ")
+			: "Menu not published";
+	},
+
+	getDom: function() {
+		let wrapper = document.createElement("div");
 		let table = document.createElement("table");
 		if (this.dataRequest) {
-			Object.entries(this.dataRequest).forEach((ent) => {
-				if (moment(ent[0]).isSameOrAfter(moment(), "day")) {
-					let row = document.createElement("tr");
-					let dateCell = document.createElement("td");
-					let meatCell = document.createElement("td");
-					let meats = ent[1]["MEAT/MEAT ALTERNATIVES"] ? ent[1]["MEAT/MEAT ALTERNATIVES"].filter(obj => obj["MenuItemDescription"] !== "PB&J Lunch ").map(m=> m["MenuItemDescription"]).join(", ") : "Lunch not published";
-					let dateSpanWrap = document.createElement("div");
-					let mealSpanWrap = document.createElement("div");
+			let showableData = Object.entries(this.dataRequest).filter(ent =>
+				moment(ent[0])
+					.hour(12)
+					.isAfter(moment(), "hour")
+			);
+			if (!showableData.length) {
+				this.hide();
+			}
+			showableData.forEach(ent => {
+				let row = document.createElement("tr");
+				let dateCell = document.createElement("td");
+				dateCell.className = "date-cell";
+				let meatCell = document.createElement("td");
+				let meats = this.getFoodItems(ent);
+				let dateSpanWrap = document.createElement("div");
+				let mealSpanWrap = document.createElement("div");
 
-					dateSpanWrap.className = "date-wrap";
-					mealSpanWrap.className = "meal-wrap";
+				dateSpanWrap.className = "date-wrap";
+				mealSpanWrap.className = "meal-wrap";
 
-					let dateWrapper = document.createElement("span");
-					dateWrapper.className = "date light";
-					let mealWrapper = document.createElement("span");
-					mealWrapper.className = "meal light";
-					dateWrapper.innerHTML = ent[0];
-					mealWrapper.innerHTML = meats;
+				let dateWrapper = document.createElement("span");
+				dateWrapper.className = "date light";
+				let mealWrapper = document.createElement("span");
+				mealWrapper.className = "meal light";
+				dateWrapper.innerHTML = moment(ent[0]).format("ddd");
+				mealWrapper.innerHTML = meats;
 
-					dateSpanWrap.appendChild(dateWrapper);
-					mealSpanWrap.appendChild(mealWrapper);
+				dateSpanWrap.appendChild(dateWrapper);
+				mealSpanWrap.appendChild(mealWrapper);
 
-					dateCell.appendChild(dateSpanWrap);
-					meatCell.appendChild(mealSpanWrap);
+				dateCell.appendChild(dateSpanWrap);
+				meatCell.appendChild(mealSpanWrap);
 
-					row.appendChild(dateCell);
-					row.appendChild(meatCell);
-					table.appendChild(row);
-				}
+				row.appendChild(dateCell);
+				row.appendChild(meatCell);
+				table.appendChild(row);
 			});
 
-			// var labelDataRequest = document.createElement("label");
-			// Use translate function
-			//             this id defined in translations files
-			// labelDataRequest.innerHTML = this.translate("TITLE");
-
-			// wrapper.appendChild(labelDataRequest);
 			wrapper.appendChild(table);
 		}
 
-		// Data from helper
-		if (this.dataNotification) {
-			var wrapperDataNotification = document.createElement("div");
-			// translations  + datanotification
-			wrapperDataNotification.innerHTML =  this.translate("UPDATE") + ": " + this.dataNotification.date;
-
-			// wrapper.appendChild(wrapperDataNotification);
-		}
 		return wrapper;
 	},
 
-	getScripts: function () {
+	getScripts: function() {
 		return ["moment.js"];
 	},
 
-	getStyles: function () {
-		return [
-			"MMM-Lunch.css",
-		];
-	},
-
-	// Load translations files
-	getTranslations: function() {
-		//FIXME: This can be load a one file javascript definition
-		return {
-			en: "translations/en.json",
-			es: "translations/es.json"
-		};
+	getStyles: function() {
+		return ["MMM-Lunch.css"];
 	},
 
 	processData: function(data) {
 		var self = this;
 		this.dataRequest = data;
-		if (this.loaded === false) { self.updateDom() ; }
+		if (this.loaded === false) {
+			self.updateDom();
+		}
 		this.loaded = true;
-
-		// the data if load
-		// send notification to helper
-		this.sendSocketNotification("MMM-Lunch-NOTIFICATION_TEST", data);
 	},
 
-	// socketNotificationReceived from helper
 	socketNotificationReceived: function(notification, payload) {
-		switch(notification) {
+		switch (notification) {
 		case "CONFIG_SET":
 			this.getData();
+			break;
 		case "NETWORK_ERROR":
-			// this is likely due to connection issue - we should retry in a bit
 			Log.error("Error reaching Lunch: ", payload);
-			// this.scheduleUpdate();
+			this.scheduleUpdate();
 			break;
 
 		case "DATA_AVAILABLE":
-			// code 200 means all went well - we have weather data
 			if (payload.statusCode == 200) {
 				this.processData(JSON.parse(payload.body));
 			} else {
@@ -169,5 +147,5 @@ Module.register("MMM-Lunch", {
 			}
 			break;
 		}
-	},
+	}
 });
