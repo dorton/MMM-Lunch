@@ -55,7 +55,10 @@ Module.register("MMM-Lunch", {
 	},
 
 	getFoodItems(ent) {
-		let main = this.config.mealType.toLowerCase() === "breakfast" ? "GRAINS" : "MEAT/MEAT ALTERNATIVES";
+		let main =
+      this.config.mealType.toLowerCase() === "breakfast"
+      	? "GRAINS"
+      	: "MEAT/MEAT ALTERNATIVES";
 		return ent[1][main]
 			? ent[1][main]
 				.filter(obj => obj["MenuItemDescription"] !== "PB&J Lunch ")
@@ -67,13 +70,17 @@ Module.register("MMM-Lunch", {
 	getDom: function() {
 		let wrapper = document.createElement("div");
 		let table = document.createElement("table");
+		console.log("getting dom: ");
 		if (this.dataRequest) {
 			let showableData = Object.entries(this.dataRequest).filter(ent =>
 				moment(ent[0])
 					.hour(12)
 					.isAfter(moment(), "hour")
 			);
-			if (!showableData.length) {
+			let showableWDays = showableData.filter(
+				ent => this.getFoodItems(ent) !== "Menu not published"
+			);
+			if (!showableWDays.length) {
 				this.hide();
 			}
 			showableData.forEach(ent => {
