@@ -16,31 +16,31 @@
     width: 90px;
   }
 
-  .MMM-Lunch .date-wrap, 
+  .MMM-Lunch .date-wrap,
   .MMM-Lunch .meal-wrap {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
-  } 
-  
+  }
+
 
   .MMM-Lunch table {
     table-layout: fixed;
     border-collapse:collapse;
   }
-  
+
   .MMM-Lunch table.half {
     max-width: 500px;
   }
-  
+
    .MMM-Lunch table td {
     line-height: 1.75;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   .MMM-Lunch table tr {
     border-bottom: solid 1px rgb(218, 214, 214);
   }
@@ -48,7 +48,7 @@
   .MMM-Lunch .date {
   color: #AAA;
   white-space: nowrap;
-  display: block;  
+  display: block;
   font-size: 36px;
   line-height: 1.5;
   text-align: left;
@@ -70,6 +70,6 @@
     padding-left: 5px;
     margin-bottom: 4px;
     margin-top: 4px;
-    font-size: 36px;
+    font-size: 22px;
     text-align: left;
-  } 
+  }
