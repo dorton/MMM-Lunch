@@ -7,6 +7,7 @@
 
 var NodeHelper = require("node_helper");
 var request = require("request");
+var https = require("https");
 var moment = require("moment");
 var _ = require("lodash");
 
@@ -29,8 +30,16 @@ module.exports = NodeHelper.create({
   fetchData: function () {
     let date = this.config.monday || moment().day("Monday").format("L");
     let mealType = _.capitalize(this.config.mealType);
-		let url = `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${this.config.schoolId}&ServingDate=${date}&ServingLine=Line%201&MealType=${mealType}`;
+    let url = `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${this.config.schoolId}&ServingDate=${date}&ServingLine=Line%201&MealType=${mealType}`;
     let localUrl = "https://admin.dorton.dev/api/lunch";
+    let agentOptions = {
+      host: "admin.dorton.dev",
+      port: "443",
+      path: "/",
+      rejectUnauthorized: false
+    };
+
+    let agent = new https.Agent(agentOptions);
 
     let params = {
       date: date,
@@ -39,8 +48,9 @@ module.exports = NodeHelper.create({
     };
     request(
       {
-				url: localUrl,
-				qs: params,
+        url: localUrl,
+        qs: params,
+        agent: agent,
         method: "GET"
       },
       (error, response, body) => {
