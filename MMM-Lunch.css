@@ -12,6 +12,12 @@
  .MMM-Lunch {
    margin-bottom: 30px !important;
  }
+
+ .MMM-Lunch .header-text {
+   text-align: left;
+   font-size: 17px;
+ }
+
   td.date-cell {
     width: 90px;
   }
@@ -70,6 +76,6 @@
     padding-left: 5px;
     margin-bottom: 4px;
     margin-top: 4px;
-    font-size: 22px;
+    font-size: 15px;
     text-align: left;
   }

@@ -20,44 +20,47 @@ module.exports = NodeHelper.create({
         break;
 
       case "FETCH_DATA":
-        if (this.config.schoolId) {
-          this.fetchData();
+        if (payload) {
+          this.fetchData(payload);
         }
         break;
     }
   },
 
-  fetchData: function () {
+  fetchData: function (school) {
     let date = this.config.monday || moment().day("Monday").format("L");
     let mealType = _.capitalize(this.config.mealType);
-    let url = `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${this.config.schoolId}&ServingDate=${date}&ServingLine=Line%201&MealType=${mealType}`;
-    let localUrl = "https://admin.dorton.dev/api/lunch";
-    let agentOptions = {
-      host: "admin.dorton.dev",
-      port: "443",
-      path: "/",
-      rejectUnauthorized: false
-    };
+    // let url = `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${this.config.schoolId}&ServingDate=${date}&ServingLine=Line%201&MealType=${mealType}`;
+    let localUrl = "http://orto:4567/api/lunch";
+    // let agentOptions = {
+    //   host: "admin.dorton.dev",
+    //   port: "443",
+    //   path: "/",
+    //   rejectUnauthorized: false
+    // };
 
-    let agent = new https.Agent(agentOptions);
+    // let agent = new https.Agent(agentOptions);
 
     let params = {
       date: date,
       mealType: mealType,
-      schoolId: this.config.schoolId
+      schoolId: school.id
     };
     request(
       {
         url: localUrl,
         qs: params,
-        agent: agent,
         method: "GET"
       },
       (error, response, body) => {
         if (error) {
           this.sendSocketNotification("NETWORK_ERROR", error);
         } else {
-          this.sendSocketNotification("DATA_AVAILABLE", response);
+          let out = {}
+          out.name = school.name
+          out.data = response.body
+          out.statusCode = response.statusCode
+          this.sendSocketNotification("DATA_AVAILABLE", out);
         }
       }
     );
