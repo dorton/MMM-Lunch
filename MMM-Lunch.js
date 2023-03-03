@@ -13,6 +13,7 @@ Module.register("MMM-Lunch", {
 		retryDelay: 5000,
 		schoolIds: null, // REQUIRED
 		mealType: "Lunch",
+		shouldShow: true,
 		moday: moment()
 			.day("Monday")
 			.format("L")
@@ -34,6 +35,7 @@ Module.register("MMM-Lunch", {
 	},
 
 	getData() {
+		this.sendSocketNotification("SHOULD_SHOW_CHECKER");
 		if (this.config.schoolIds.length) {
 			this.dataRequest = []
 			this.config.schoolIds.forEach(school => {
@@ -157,7 +159,16 @@ Module.register("MMM-Lunch", {
 		}
 	},
 
+	hasDataToShow() {
+		return Object.keys(this.dataRequest[0].data).filter(d => moment(d).hour(12).isAfter(moment(), "hour")).length > 0
+	},
+
 	getDom() {
+		if (this.dataRequest && this.dataRequest.length && this.hasDataToShow()) {
+			this.shouldShow ? this.show() : this.hide();
+			} else {
+			this.hide();
+		}
 		const app = document.createElement("div");
 		app.setAttribute("id", "progress-wrapper");
 		let table = document.createElement("table");
@@ -203,11 +214,20 @@ Module.register("MMM-Lunch", {
 				Log.error("Error reaching Lunch: ", payload);
 				this.scheduleUpdate();
 				break;
-
+			case "SHOULD_SHOW":
+				if (payload.statusCode == 200) {
+					payload.data = JSON.parse(payload.data)
+					this.shouldShow = payload.data.show_lunch
+				} else {
+					Log.error("Error: ", payload);
+				}
+				break;
 			case "DATA_AVAILABLE":
 				if (payload.statusCode == 200) {
 					payload.data = JSON.parse(payload.data)
-					this.dataRequest.push(payload);
+					if (this.dataRequest.length < 2) {
+						this.dataRequest.push(payload);
+					}
 					this.processData();
 				} else {
 					Log.error("Error: ", payload);

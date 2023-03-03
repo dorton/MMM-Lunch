@@ -19,6 +19,10 @@ module.exports = NodeHelper.create({
         this.sendSocketNotification("CONFIG_SET");
         break;
 
+      case "SHOULD_SHOW_CHECKER":
+            this.fetchHolidayData();
+          break;
+
       case "FETCH_DATA":
         if (payload) {
           this.fetchData(payload);
@@ -27,20 +31,30 @@ module.exports = NodeHelper.create({
     }
   },
 
+  fetchHolidayData: function() {
+    let localUrl = this.config.holidayUrl;
+    request(
+      {
+        url: localUrl,
+        method: "GET"
+      },
+      (error, response, body) => {
+        if (error) {
+          this.sendSocketNotification("NETWORK_ERROR", error);
+        } else {
+          let out = {}
+          out.data = response.body
+          out.statusCode = response.statusCode
+          this.sendSocketNotification("SHOULD_SHOW", out);
+        }
+      }
+    );
+  },
+
   fetchData: function (school) {
     let date = this.config.monday || moment().day("Monday").format("L");
     let mealType = _.capitalize(this.config.mealType);
-    // let url = `https://webapis.schoolcafe.com/api/CalendarView/GetWeeklyMenuitems?SchoolId=${this.config.schoolId}&ServingDate=${date}&ServingLine=Line%201&MealType=${mealType}`;
-    let localUrl = "http://orto:4567/api/lunch";
-    // let agentOptions = {
-    //   host: "admin.dorton.dev",
-    //   port: "443",
-    //   path: "/",
-    //   rejectUnauthorized: false
-    // };
-
-    // let agent = new https.Agent(agentOptions);
-
+    let localUrl = this.config.url;
     let params = {
       date: date,
       mealType: mealType,
